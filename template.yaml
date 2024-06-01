@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - 'AWS::Serverless-2016-10-31'
+Description: |
+  A serverless invoices application.
+Parameters:
+  ConfigLayerArn:
+    Type: String
+    Description: ARN of the layer containing the invoicely config.
+  LambdaAuthorizerArn:
+    Type: String
+    Description: The ARN of the Lambda authorizer.
+    Default: ""
+  LambdaAuthorizerRoleArn:
+    Type: String
+    Description: The ARN of the role to use for the Lambda authorizer.
+    Default: ""
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: serverless-invoices
+    Description: A serverless invoicing application
+    Author: Andy Caine
+    SpdxLicenseId: MIT
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    Labels: ['invoices', 'invoicing', 's3', 'python', 'sqs']
+    HomePageUrl: https://github.com/andycaine/serverless-invoices#readme
+    SemanticVersion: 0.1.0
+    SourceCodeUrl: https://github.com/andycaine/serverless-invoices
+Conditions:
+  HasLambdaAuthorizer: !Not [!Equals [!Ref LambdaAuthorizerArn, '']]
+
+Resources:
+
+  InvoiceRequestQueue:
+    Type: AWS::SQS::Queue
+
+  InvoicesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  QueueProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - arm64
+      Runtime: python3.12
+      Handler: app.handler
+      CodeUri: ./queue_processor
+      Layers:
+        - !Ref ConfigLayerArn
+      Environment:
+        Variables:
+          INVOICE_BUCKET: !Ref InvoicesBucket
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref InvoicesBucket
+        - SQSPollerPolicy:
+            QueueName: !GetAtt InvoiceRequestQueue.QueueName
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt InvoiceRequestQueue.Arn
+            BatchSize: 1
+            Enabled: true
+            ScalingConfig:
+              MaximumConcurrency: 50
+
+  Web:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Auth:
+        Authorizers:
+          Fn::If:
+            - HasLambdaAuthorizer
+            - LambdaAuthorizer:
+                FunctionArn: !Ref LambdaAuthorizerArn
+                AuthorizerPayloadFormatVersion: 2.0
+                EnableSimpleResponses: true
+                FunctionInvokeRole: !Ref LambdaAuthorizerRoleArn
+            - Ref: AWS::NoValue
+        DefaultAuthorizer: !If [HasLambdaAuthorizer, 'LambdaAuthorizer', !Ref AWS::NoValue]
+
+  GetInvoice:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - arm64
+      Runtime: python3.12
+      Handler: app.handler
+      CodeUri: ./get_invoice
+      Environment:
+        Variables:
+          INVOICE_BUCKET: !Ref InvoicesBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref InvoicesBucket
+      Events:
+        Web:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Web
+            Path: /invoices/{invoice_id}
+            Method: get
+
+Outputs:
+  InvoiceRequestQueue:
+    Description: "The name of the invoice request queue"
+    Value: !Ref InvoiceRequestQueue
+  InvoicesEndpoint:
+    Description: "The endpoint of the invoices service"
+    Value: !Sub "https://${Web}.execute-api.${AWS::Region}.amazonaws.com"

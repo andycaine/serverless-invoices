@@ -1,0 +1,4 @@
+pytest
+invoicely
+pyyaml
+boto3

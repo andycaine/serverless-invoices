@@ -1,0 +1,6 @@
+.envrc
+.aws-sam
+packaged.yaml
+.venv/
+__pycache__/
+samconfig.toml

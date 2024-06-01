@@ -1,0 +1,6 @@
+chardet==5.2.0
+click==8.1.7
+invoicely==0.1.0
+pillow==10.3.0
+reportlab==4.2.0
+pyyaml==6.0.1
