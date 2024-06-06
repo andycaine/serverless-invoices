@@ -22,7 +22,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['invoices', 'invoicing', 's3', 'python', 'sqs']
     HomePageUrl: https://github.com/andycaine/serverless-invoices#readme
-    SemanticVersion: 0.2.0
+    SemanticVersion: 0.3.0
     SourceCodeUrl: https://github.com/andycaine/serverless-invoices
 
 Resources:
@@ -107,8 +107,11 @@ Resources:
 
 Outputs:
   InvoiceRequestQueue:
-    Description: "The name of the invoice request queue"
+    Description: "The URL of the invoice request queue"
     Value: !Ref InvoiceRequestQueue
+  InvoiceRequestQueueArn:
+    Description: "The ARN of the invoice request queue"
+    Value: !GetAtt InvoiceRequestQueue.Arn
   InvoicesEndpoint:
     Description: "The endpoint of the invoices service"
     Value: !Sub "https://${Web}.execute-api.${AWS::Region}.amazonaws.com"
