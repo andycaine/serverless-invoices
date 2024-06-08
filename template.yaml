@@ -22,7 +22,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['invoices', 'invoicing', 's3', 'python', 'sqs']
     HomePageUrl: https://github.com/andycaine/serverless-invoices#readme
-    SemanticVersion: 0.3.0
+    SemanticVersion: 0.3.1
     SourceCodeUrl: https://github.com/andycaine/serverless-invoices
 
 Resources:

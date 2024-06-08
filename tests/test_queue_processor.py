@@ -49,3 +49,29 @@ def test_queue_processor(mock_s3):
     assert kwargs == {
         'ExtraArgs': {'ContentType': 'application/pdf'}
     }
+
+
+def test_invalid_json():
+    event = {
+        "Records": [
+            {
+                "messageId": "1",
+                "body": "not a json",
+            }
+        ]
+    }
+    result = app.handler(event, {})
+    assert result["statusCode"] == 200
+
+
+def test_missing_fields():
+    event = {
+        "Records": [
+            {
+                "messageId": "1",
+                "body": json.dumps({}),
+            }
+        ]
+    }
+    result = app.handler(event, {})
+    assert result["statusCode"] == 200

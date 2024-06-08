@@ -19,9 +19,16 @@ def load_config():
 
 
 def process_message(message, provider, logo, line_item_col_widths):
-    data = json.loads(message)
-    customer = invoicely.Customer(**data['customer'])
-    invoice_number = data['invoice_number']
+    try:
+        data = json.loads(message)
+        customer = invoicely.Customer(**data['customer'])
+        invoice_number = data['invoice_number']
+        line_items = data['line_items']
+        invoice_date = data['invoice_date']
+        invoice_totals = data['invoice_totals']
+    except (json.JSONDecodeError, KeyError):
+        logger.error(f'Skipping message due to invalid JSON: {message}')
+        return
 
     with tempfile.NamedTemporaryFile(dir='/tmp') as f:
         invoicely.invoice(
@@ -30,10 +37,10 @@ def process_message(message, provider, logo, line_item_col_widths):
             customer=customer,
             logo=logo,
             line_item_col_widths=line_item_col_widths,
-            line_items=data['line_items'],
+            line_items=line_items,
             invoice_number=invoice_number,
-            invoice_date=data['invoice_date'],
-            invoice_totals=data['invoice_totals']
+            invoice_date=invoice_date,
+            invoice_totals=invoice_totals
         )
         f.flush()
         s3.upload_file(
