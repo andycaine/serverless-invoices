@@ -27,7 +27,7 @@ def process_message(message, provider, logo, line_item_col_widths):
         invoice_date = data['invoice_date']
         invoice_totals = data['invoice_totals']
     except (json.JSONDecodeError, KeyError):
-        logger.error(f'Skipping message due to invalid JSON: {message}')
+        logger.info(f'Skipping message due to invalid JSON: {message}')
         return
 
     with tempfile.NamedTemporaryFile(dir='/tmp') as f:
