@@ -8,6 +8,7 @@ import invoicely
 import yaml
 
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 config_dir = '/opt/python'
 s3 = boto3.client('s3')
 invoice_bucket = os.environ['INVOICE_BUCKET']
