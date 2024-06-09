@@ -26,7 +26,7 @@ def process_message(message, provider, logo, line_item_col_widths):
         line_items = data['line_items']
         invoice_date = data['invoice_date']
         invoice_totals = data['invoice_totals']
-    except (json.JSONDecodeError, KeyError):
+    except (json.JSONDecodeError, KeyError, TypeError):
         logger.info(f'Skipping message due to invalid JSON: {message}')
         return
 
