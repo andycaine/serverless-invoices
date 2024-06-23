@@ -65,7 +65,7 @@ Resources:
         - SQSPollerPolicy:
             QueueName: !GetAtt InvoiceRequestQueue.QueueName
         - SESCrudPolicy:
-            Identity: !Ref SESIdentity
+            IdentityName: !Ref SESIdentity
       Events:
         SQSEvent:
           Type: SQS
