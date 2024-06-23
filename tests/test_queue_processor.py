@@ -1,15 +1,34 @@
 from unittest.mock import patch
 import json
-import os
 
-os.environ['INVOICE_BUCKET'] = 'test-bucket'
-from queue_processor import app  # noqa: E402
-
-app.config_dir = 'tests/config'
+import pytest
 
 
-@patch('queue_processor.app.s3')
-def test_queue_processor(mock_s3):
+@pytest.fixture
+def envvars(monkeypatch):
+    monkeypatch.setenv('INVOICE_BUCKET', 'test-bucket')
+
+
+@pytest.fixture
+def mock_s3():
+    with patch('queue_processor.app.s3') as mock_s3:
+        yield mock_s3
+
+
+@pytest.fixture
+def mock_ses():
+    with patch('queue_processor.ses.ses') as mock_ses:
+        yield mock_ses
+
+
+@pytest.fixture
+def app(envvars, mock_s3, mock_ses):
+    from queue_processor import app
+    app.config_dir = 'tests/config'
+    yield app
+
+
+def test_queue_processor(app, mock_s3, mock_ses):
     invoice_request = {
         'invoice_number': '9999',
         'invoice_date': '2024-05-01',
@@ -27,6 +46,9 @@ def test_queue_processor(mock_s3):
             ['VAT (%)', '20%'],
             ['Total VAT', '£284.80'],
             ['Balance', '£1,768.80']
+        ],
+        'notification_addresses': [
+            'test@example.com'
         ]
     }
 
@@ -50,8 +72,13 @@ def test_queue_processor(mock_s3):
         'ExtraArgs': {'ContentType': 'application/pdf'}
     }
 
+    mock_ses.send_raw_email.assert_called_once()
+    _, kwargs = mock_ses.send_raw_email.call_args
+    assert kwargs['Source'] == 'invoices@example.com'
+    assert kwargs['Destinations'] == ['test@example.com']
 
-def test_invalid_json():
+
+def test_invalid_json(app):
     event = {
         "Records": [
             {
@@ -64,7 +91,7 @@ def test_invalid_json():
     assert result["statusCode"] == 200
 
 
-def test_missing_fields():
+def test_missing_fields(app):
     event = {
         "Records": [
             {

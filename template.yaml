@@ -12,6 +12,9 @@ Parameters:
   LambdaAuthorizerRoleArn:
     Type: String
     Description: The ARN of the role to use for the Lambda authorizer.
+  SESIdentity:
+    Type: String
+    Description: The SES identity to use for sending emails.
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: serverless-invoices
@@ -22,7 +25,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['invoices', 'invoicing', 's3', 'python', 'sqs']
     HomePageUrl: https://github.com/andycaine/serverless-invoices#readme
-    SemanticVersion: 0.3.3
+    SemanticVersion: 0.4.0
     SourceCodeUrl: https://github.com/andycaine/serverless-invoices
 
 Resources:
@@ -61,6 +64,8 @@ Resources:
             BucketName: !Ref InvoicesBucket
         - SQSPollerPolicy:
             QueueName: !GetAtt InvoiceRequestQueue.QueueName
+        - SESCrudPolicy:
+            Identity: !Ref SESIdentity
       Events:
         SQSEvent:
           Type: SQS

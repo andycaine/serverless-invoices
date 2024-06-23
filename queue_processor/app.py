@@ -7,6 +7,9 @@ import boto3
 import invoicely
 import yaml
 
+from . import ses
+
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 config_dir = '/opt/python'
@@ -19,7 +22,8 @@ def load_config():
         return yaml.safe_load(f)
 
 
-def process_message(message, provider, logo, line_item_col_widths):
+def process_message(message, provider, logo, line_item_col_widths,
+                    email_from_address, email_subject, email_body):
     try:
         data = json.loads(message)
         customer = invoicely.Customer(**data['customer'])
@@ -27,6 +31,7 @@ def process_message(message, provider, logo, line_item_col_widths):
         line_items = data['line_items']
         invoice_date = data['invoice_date']
         invoice_totals = data['invoice_totals']
+        notification_addresses = data['notification_addresses']
     except (json.JSONDecodeError, KeyError, TypeError):
         logger.info(f'Skipping message due to invalid JSON: {message}')
         return
@@ -50,10 +55,25 @@ def process_message(message, provider, logo, line_item_col_widths):
             f'{invoice_number}.pdf',
             ExtraArgs={'ContentType': 'application/pdf'}
         )
+        ses.send_email(
+            sender=email_from_address,
+            recipients=notification_addresses,
+            subject=email_subject,
+            body=email_body,
+            attachments=[ses.Attachment(
+                file=f.name,
+                name=f'{invoice_number}.pdf',
+                maintype='application',
+                subtype='pdf'
+            )]
+        )
 
 
 def handler(event, _):
     config = load_config()
+    email_from_address = config['email_from_address']
+    email_subject = config['email_subject']
+    email_body = config['email_body']
     provider = invoicely.Provider(**config['provider'])
     line_item_col_widths = config['line_item_col_widths']
     logo_config = config['logo']
@@ -66,7 +86,8 @@ def handler(event, _):
     for record in event['Records']:
         logger.info(f'Processing message {record["messageId"]}')
         message = record['body']
-        process_message(message, provider, logo, line_item_col_widths)
+        process_message(message, provider, logo, line_item_col_widths,
+                        email_from_address, email_subject, email_body)
 
     return {
         'statusCode': 200,

@@ -29,6 +29,12 @@ line_item_col_widths:  # represents fractions of the page width
   - 0.1
   - 0.2
   - 0.2
+email_from_address: invoices@example.com
+email_subject: Invoice from example.com
+email_body: |-
+  Please find your invoice attached.
+  Kind regards,
+  Your company
 ```
 
 and stored in the root of the Lambda layer directory as `config.yaml`. For example:
