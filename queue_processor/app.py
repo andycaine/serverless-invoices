@@ -7,7 +7,7 @@ import boto3
 import invoicely
 import yaml
 
-from . import ses
+import ses
 
 
 logger = logging.getLogger()

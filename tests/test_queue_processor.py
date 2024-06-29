@@ -1,5 +1,6 @@
 from unittest.mock import patch
 import json
+import sys
 
 import pytest
 
@@ -10,20 +11,31 @@ def envvars(monkeypatch):
 
 
 @pytest.fixture
-def mock_s3():
-    with patch('queue_processor.app.s3') as mock_s3:
+def mock_s3(lambda_path):
+    with patch('app.s3') as mock_s3:
         yield mock_s3
 
 
 @pytest.fixture
-def mock_ses():
-    with patch('queue_processor.ses.ses') as mock_ses:
+def mock_ses(lambda_path):
+    with patch('ses.ses') as mock_ses:
         yield mock_ses
 
 
 @pytest.fixture
+def lambda_path():
+    path = 'queue_processor'
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    yield path
+
+
+@pytest.fixture
 def app(envvars, mock_s3, mock_ses):
-    from queue_processor import app
+    path = 'queue_processor'
+    if path not in sys.path:
+        sys.path.insert(0, path)
+    import app
     app.config_dir = 'tests/config'
     yield app
 

@@ -1,5 +1,6 @@
 import pytest
 
+
 @pytest.fixture(autouse=True)
 def aws_creds(monkeypatch):
     # Make sure that no tests try to use real AWS creds
